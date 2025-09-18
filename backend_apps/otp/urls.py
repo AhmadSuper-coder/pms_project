@@ -1,10 +1,10 @@
 from django.urls import path
-from .views import generate_otp_view, verify_otp_view
+from .views import GenerateOtpView, VerifyOtpView
 
 
 urlpatterns = [
-    path("generate", generate_otp_view, name="otp-generate"),
-    path("verify", verify_otp_view, name="otp-verify"),
+    path("generate", GenerateOtpView.as_view(), name="otp-generate"),
+    path("verify", VerifyOtpView.as_view(), name="otp-verify"),
 ]
 
 
