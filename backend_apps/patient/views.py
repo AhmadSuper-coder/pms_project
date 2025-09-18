@@ -1,23 +1,50 @@
-from rest_framework import viewsets, permissions
+from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import Patient
 from .serializers import PatientSerializer
 
 
-class IsDoctorOwner(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj: Patient):
-        return obj.doctor_id == request.user.id
+class PatientCRUDView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated
+    def get(self, request, patient_id=None):
+        if patient_id is None:
+            patients = Patient.objects.filter(doctor=request.user).order_by('full_name')
+            data = PatientSerializer(patients, many=True).data
+            return Response({"results": data})
+        try:
+            patient = Patient.objects.get(id=patient_id, doctor=request.user)
+        except Patient.DoesNotExist:
+            return Response({"detail": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(PatientSerializer(patient).data)
 
+    def post(self, request):
+        serializer = PatientSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        patient = serializer.save(doctor=request.user)
+        return Response(PatientSerializer(patient).data, status=status.HTTP_201_CREATED)
 
-class PatientViewSet(viewsets.ModelViewSet):
-    serializer_class = PatientSerializer
-    permission_classes = [permissions.IsAuthenticated, IsDoctorOwner]
+    def patch(self, request, patient_id=None):
+        if patient_id is None:
+            return Response({"detail": "patient_id required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            patient = Patient.objects.get(id=patient_id, doctor=request.user)
+        except Patient.DoesNotExist:
+            return Response({"detail": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = PatientSerializer(patient, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        return Response(serializer.data)
 
-    def get_queryset(self):
-        return Patient.objects.filter(doctor=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(doctor=self.request.user)
+    def delete(self, request, patient_id=None):
+        if patient_id is None:
+            return Response({"detail": "patient_id required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            patient = Patient.objects.get(id=patient_id, doctor=request.user)
+        except Patient.DoesNotExist:
+            return Response({"detail": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
+        patient.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

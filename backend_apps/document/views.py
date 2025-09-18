@@ -6,7 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import viewsets, permissions
+from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -173,28 +173,50 @@ class DocumentDetailView(APIView):
         })
 
 
-class IsOwnerDoctorOfPatient(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated
+class DocumentCRUDView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
-    def has_object_permission(self, request, view, obj: Document):
-        return obj.owner_id == request.user.id or (obj.patient and obj.patient.doctor_id == request.user.id)
+    def get(self, request, document_id=None):
+        if document_id is None:
+            qs = Document.objects.filter(patient__doctor=request.user)
+            patient_id = request.query_params.get('patient_id')
+            if patient_id:
+                qs = qs.filter(patient_id=patient_id)
+            data = DocumentSerializer(qs.order_by('-created_at'), many=True).data
+            return Response({"results": data})
+        try:
+            d = Document.objects.get(id=document_id, patient__doctor=request.user)
+        except Document.DoesNotExist:
+            return Response({"detail": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(DocumentSerializer(d).data)
 
+    def post(self, request):
+        serializer = DocumentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        doc = serializer.save(owner=request.user)
+        return Response(DocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
-class DocumentViewSet(viewsets.ModelViewSet):
-    serializer_class = DocumentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerDoctorOfPatient]
+    def patch(self, request, document_id=None):
+        if document_id is None:
+            return Response({"detail": "document_id required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            d = Document.objects.get(id=document_id, patient__doctor=request.user)
+        except Document.DoesNotExist:
+            return Response({"detail": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = DocumentSerializer(d, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        return Response(serializer.data)
 
-    def get_queryset(self):
-        qs = Document.objects.all()
-        # Scope by doctor and optional patient_id
-        user = self.request.user
-        patient_id = self.request.query_params.get('patient_id')
-        qs = qs.filter(patient__doctor=user)
-        if patient_id:
-            qs = qs.filter(patient_id=patient_id)
-        return qs.order_by('-created_at')
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    def delete(self, request, document_id=None):
+        if document_id is None:
+            return Response({"detail": "document_id required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            d = Document.objects.get(id=document_id, patient__doctor=request.user)
+        except Document.DoesNotExist:
+            return Response({"detail": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
+        d.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

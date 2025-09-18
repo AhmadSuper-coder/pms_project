@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'backend_apps.patient',
     'backend_apps.otp',
     'backend_apps.document',
+    'backend_apps.accounts',
 ]
 
 MIDDLEWARE = [
