@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'backend_apps.patient',
     'backend_apps.otp',
+    'backend_apps.document',
 ]
 
 MIDDLEWARE = [
@@ -154,3 +155,9 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() in {'1', 'true', 'yes'}
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'false').lower() in {'1', 'true', 'yes'}
+
+# GCP / GCS configuration
+GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', '')
+GCS_UPLOAD_PREFIX = os.getenv('GCS_UPLOAD_PREFIX', 'uploads/')
+GCS_SIGNED_URL_EXPIRE_SECONDS = int(os.getenv('GCS_SIGNED_URL_EXPIRE_SECONDS', str(15 * 60)))
+GCS_SIGNED_GET_EXPIRE_SECONDS = int(os.getenv('GCS_SIGNED_GET_EXPIRE_SECONDS', str(60 * 60)))
