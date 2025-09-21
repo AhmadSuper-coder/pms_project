@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-k^l$6s!6@$d@r)984l69dbz1w+p4oj7ta^o^)re6w_m!knw%$k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["backend.jsonformatters.online"]
 
 
 # Application definition
