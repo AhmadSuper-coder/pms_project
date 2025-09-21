@@ -4,11 +4,14 @@ from typing import Any
 
 from django.conf import settings
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import permissions
+from rest_framework import permissions, filters
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 
 from .models import Document
 from backend_apps.patient.models import Patient
@@ -173,50 +176,108 @@ class DocumentDetailView(APIView):
         })
 
 
-class DocumentCRUDView(APIView):
+class DocumentViewSet(ModelViewSet):
+    """
+    ViewSet for managing documents.
+    
+    Provides CRUD operations for documents with filtering and search capabilities.
+    """
+    serializer_class = DocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['filename', 'document_type']
+    ordering_fields = ['filename', 'created_at', 'updated_at', 'size_bytes']
+    ordering = ['-created_at']
+    filterset_fields = ['patient', 'document_type', 'is_uploaded']
 
-    def get(self, request, document_id=None):
-        if document_id is None:
-            qs = Document.objects.filter(patient__doctor=request.user)
-            patient_id = request.query_params.get('patient_id')
-            if patient_id:
-                qs = qs.filter(patient_id=patient_id)
-            data = DocumentSerializer(qs.order_by('-created_at'), many=True).data
-            return Response({"results": data})
+    def get_queryset(self):
+        """Return documents filtered by the authenticated doctor."""
+        return Document.objects.filter(patient__doctor=self.request.user)
+
+    def perform_create(self, serializer):
+        """Set the owner to the authenticated user when creating a document."""
+        serializer.save(owner=self.request.user)
+
+    def get_serializer_context(self):
+        """Add request context to serializer."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    @action(detail=True, methods=['get'])
+    def download_url(self, request, pk=None):
+        """Get a signed download URL for the document."""
+        document = self.get_object()
+        
+        if not document.is_uploaded:
+            return Response(
+                {"detail": "Document not uploaded yet"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        gcs_cfg = get_gcs_settings()
+        bucket_name = gcs_cfg['bucket']
+        expires_in = gcs_cfg['get_expire_seconds']
+        
         try:
-            d = Document.objects.get(id=document_id, patient__doctor=request.user)
-        except Document.DoesNotExist:
-            return Response({"detail": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
-        return Response(DocumentSerializer(d).data)
+            download_url = generate_signed_get_url(bucket_name, document.gcs_key, expires_in)
+            return Response({
+                'download_url': download_url,
+                'expires_in': expires_in,
+                'filename': document.filename
+            })
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to generate download URL: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-    def post(self, request):
-        serializer = DocumentSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        doc = serializer.save(owner=request.user)
-        return Response(DocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
-
-    def patch(self, request, document_id=None):
-        if document_id is None:
-            return Response({"detail": "document_id required"}, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=['get'])
+    def by_patient(self, request):
+        """Get all documents for a specific patient."""
+        patient_id = request.query_params.get('patient_id')
+        if not patient_id:
+            return Response(
+                {"detail": "patient_id query parameter required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         try:
-            d = Document.objects.get(id=document_id, patient__doctor=request.user)
-        except Document.DoesNotExist:
-            return Response({"detail": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = DocumentSerializer(d, data=request.data, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        serializer.save()
+            patient = Patient.objects.get(id=patient_id, doctor=request.user)
+        except Patient.DoesNotExist:
+            return Response(
+                {"detail": "Patient not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        documents = self.get_queryset().filter(patient=patient)
+        
+        # Apply pagination
+        page = self.paginate_queryset(documents)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(documents, many=True)
         return Response(serializer.data)
 
-    def delete(self, request, document_id=None):
-        if document_id is None:
-            return Response({"detail": "document_id required"}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            d = Document.objects.get(id=document_id, patient__doctor=request.user)
-        except Document.DoesNotExist:
-            return Response({"detail": "Document not found"}, status=status.HTTP_404_NOT_FOUND)
-        d.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get document statistics for the authenticated doctor."""
+        queryset = self.get_queryset()
+        
+        stats = {
+            'total_documents': queryset.count(),
+            'uploaded_documents': queryset.filter(is_uploaded=True).count(),
+            'pending_documents': queryset.filter(is_uploaded=False).count(),
+            'total_size_bytes': sum(d.size_bytes for d in queryset.filter(is_uploaded=True) if d.size_bytes),
+            'documents_by_type': {}
+        }
+        
+        # Count by document type
+        for doc_type in queryset.values_list('document_type', flat=True).distinct():
+            if doc_type:
+                stats['documents_by_type'][doc_type] = queryset.filter(document_type=doc_type).count()
+        
+        return Response(stats)
 

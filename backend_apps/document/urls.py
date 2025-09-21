@@ -1,20 +1,22 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import (
     GcsSignUploadUrlView,
     ConfirmUploadView,
     PatientDocumentsView,
     DocumentDetailView,
-    DocumentCRUDView,
+    DocumentViewSet,
 )
 
+router = DefaultRouter()
+router.register(r'documents', DocumentViewSet, basename='document')
 
 urlpatterns = [
-    path("sign-upload", GcsSignUploadUrlView.as_view(), name="doc-sign-upload"),
-    path("confirm", ConfirmUploadView.as_view(), name="doc-confirm"),
-    path("patient/<int:patient_id>/documents", PatientDocumentsView.as_view(), name="patient-documents"),
-    path("documents/<int:document_id>", DocumentDetailView.as_view(), name="document-detail"),
-    path("documents", DocumentCRUDView.as_view(), name="document-list-create"),
-    path("documents/<int:document_id>", DocumentCRUDView.as_view(), name="document-update-delete"),
+    path("", include(router.urls)),
+    path("sign-upload/", GcsSignUploadUrlView.as_view(), name="doc-sign-upload"),
+    path("confirm/", ConfirmUploadView.as_view(), name="doc-confirm"),
+    path("patient/<int:patient_id>/documents/", PatientDocumentsView.as_view(), name="patient-documents"),
+    path("document/<int:document_id>/", DocumentDetailView.as_view(), name="document-detail"),
 ]
 
 
