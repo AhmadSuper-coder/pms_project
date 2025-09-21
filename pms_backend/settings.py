@@ -29,6 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["backend.jsonformatters.online"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://backend.jsonformatters.online",
+]
 
 # Application definition
 
