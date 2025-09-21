@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from .models import PMSUser
 User = get_user_model()
 
 
@@ -24,9 +24,8 @@ class UserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
 
     class Meta:
-        model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'name']
-        read_only_fields = ['id', 'email']
+        model = PMSUser
+        fields = ['email', 'full_name', 'sub_id']
 
     def get_name(self, obj):
         """Get full name from first and last name."""

@@ -1,13 +1,11 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from backend_apps.patient.models import Patient
+from backend_apps.accounts.models import PMSUser
 
-
-User = get_user_model()
 
 
 class Document(models.Model):
-    owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents")
+    owner = models.ForeignKey(PMSUser, null=True, blank=True, on_delete=models.SET_NULL, related_name="documents")
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="documents")
     filename = models.CharField(max_length=255)
     content_type = models.CharField(max_length=150)
