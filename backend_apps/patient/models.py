@@ -1,9 +1,7 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from backend_apps.accounts.models import PMSUser
 
 
-User = get_user_model()
 
 
 class Patient(models.Model):

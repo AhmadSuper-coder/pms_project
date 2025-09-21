@@ -17,6 +17,5 @@ INSTALLED_APPS_SERVER = [
     {11: 'backend_apps.userprofile'},
     {12: 'backend_apps.payment'},
     {13: 'cloudinary'},
-    {14: 'cloudinary_storage'},
-    {15: 'django_admin_generator'},
-]
+    {14: 'cloudinary_storage'}
+    ]
