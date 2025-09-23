@@ -5,10 +5,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from .models import PMSUser
 from .serializers import OAuthLoginSerializer, OAuthLoginResponseSerializer, UserSerializer
-
-User = get_user_model()
 
 
 class OAuthLoginView(APIView):
@@ -30,16 +28,13 @@ class OAuthLoginView(APIView):
         name = serializer.validated_data.get('name', '')
 
         with transaction.atomic():
-            user, created = User.objects.get_or_create(
+            user, created = PMSUser.objects.get_or_create(
                 email=email,
-                defaults={
-                    "username": email.split("@")[0],
-                    "first_name": name.split(" ")[0] if name else "",
-                    "last_name": " ".join(name.split(" ")[1:]) if name and len(name.split()) > 1 else ""
-                },
+                full_name=name,
             )
 
         refresh = RefreshToken.for_user(user)
+                    
         user_serializer = UserSerializer(user)
         
         response_data = {

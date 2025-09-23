@@ -8,7 +8,7 @@ from .models import PMSUser
 class PMSUserAdmin(UserAdmin):
     model = PMSUser
     # fields to display in admin list view
-    list_display = ('email', 'full_name', 'sub_id', 'is_staff', 'is_active', 'is_superuser')
+    list_display = ('id', 'email', 'full_name', 'sub_id', 'is_staff', 'is_active', 'is_superuser')
     list_filter = ('is_staff', 'is_active', 'is_superuser')
     search_fields = ('email', 'full_name', 'sub_id')
     ordering = ('email',)

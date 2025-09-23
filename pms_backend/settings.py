@@ -147,30 +147,46 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # DRF & JWT configuration
 REST_FRAMEWORK = {
+    # 🔑 Authentication: use JWT for securing API requests
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+
+    # 🔒 Permissions: require authentication by default for all endpoints
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+
+    # 📄 Pagination: use page-number pagination with default page size of 20
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+
+    # 🔎 Filtering, searching, and ordering support for querysets
     'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
+        'django_filters.rest_framework.DjangoFilterBackend',  # field-based filtering
+        'rest_framework.filters.SearchFilter',                # full-text search on specified fields
+        'rest_framework.filters.OrderingFilter',              # ordering via ?ordering=field
     ],
+
+    # 🎨 Response rendering: only allow JSON responses (no browsable API in production)
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+
+    # 📝 Request parsing: support JSON, file uploads (multipart), and form data
     'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.MultiPartParser',
-        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.JSONParser',       # parse application/json
+        'rest_framework.parsers.MultiPartParser',  # parse multipart/form-data (file upload)
+        'rest_framework.parsers.FormParser',       # parse regular HTML form data
     ],
+
+    # ⚠️ Custom error handling: central place for formatting API exceptions
     'EXCEPTION_HANDLER': 'pms_backend.exceptions.custom_exception_handler',
+
+    # 📘 API schema generation: use drf-spectacular to generate OpenAPI/Swagger docs
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
 
 # API Documentation settings
 SPECTACULAR_SETTINGS = {
@@ -220,3 +236,19 @@ GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', '')
 GCS_UPLOAD_PREFIX = os.getenv('GCS_UPLOAD_PREFIX', 'uploads/')
 GCS_SIGNED_URL_EXPIRE_SECONDS = int(os.getenv('GCS_SIGNED_URL_EXPIRE_SECONDS', str(15 * 60)))
 GCS_SIGNED_GET_EXPIRE_SECONDS = int(os.getenv('GCS_SIGNED_GET_EXPIRE_SECONDS', str(60 * 60)))
+
+# JWT configuration
+from datetime import timedelta
+SIMPLE_JWT = {
+    # ⏳ Access token lifetime (short-lived, usually minutes)
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+
+    # 🔄 Refresh token lifetime (longer-lived, usually days/weeks)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+
+    # Whether a refresh token can be reused or should be rotated
+    'ROTATE_REFRESH_TOKENS': True,
+
+    # If old refresh tokens should be blacklisted when rotated
+    'BLACKLIST_AFTER_ROTATION': True,
+}

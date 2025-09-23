@@ -8,7 +8,8 @@ User = get_user_model()
 class OAuthLoginSerializer(serializers.Serializer):
     """Serializer for OAuth login requests."""
     email = serializers.EmailField(required=True)
-    name = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    name = serializers.CharField(max_length=255, required=True, allow_blank=True)
+    sub  = serializers.CharField(max_length=255, required=True, allow_blank=True)
 
     def validate_email(self, value):
         """Normalize email to lowercase."""
@@ -21,16 +22,11 @@ class OAuthLoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model with limited fields."""
-    name = serializers.SerializerMethodField()
 
     class Meta:
         model = PMSUser
         fields = ['email', 'full_name', 'sub_id']
 
-    def get_name(self, obj):
-        """Get full name from first and last name."""
-        name_parts = [obj.first_name, obj.last_name]
-        return ' '.join(part for part in name_parts if part).strip()
 
 
 class OAuthLoginResponseSerializer(serializers.Serializer):

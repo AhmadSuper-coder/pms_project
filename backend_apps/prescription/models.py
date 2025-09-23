@@ -4,7 +4,7 @@ from backend_apps.accounts.models import PMSUser
 # Create your models here.
 
 class Prescription(models.Model):
-    doctor = models.ForeignKey(PMSUser, on_delete=models.CASCADE, related_name="prescriptions")
+    doctor = models.ForeignKey(PMSUser, on_delete=models.CASCADE, related_name="prescriptions", null=True, blank=True)
 
     patient = models.ForeignKey(
         Patient,
@@ -34,7 +34,9 @@ class Medicine(models.Model):
         Patient,
         on_delete=models.CASCADE,
         related_name="medicines",
-        help_text="The patient this medicine is prescribed to."
+        help_text="The patient this medicine is prescribed to.",
+        null=True,
+        blank=True
     )
     prescription = models.ForeignKey(
         Prescription,
