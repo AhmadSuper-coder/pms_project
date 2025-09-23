@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-k^l$6s!6@$d@r)984l69dbz1w+p4oj7ta^o^)re6w_m!knw%$k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["backend.jsonformatters.online"]
+ALLOWED_HOSTS = ["backend.jsonformatters.online","127.0.0.1","localhost"]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://backend.jsonformatters.online",
@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'backend_apps.otp',
     'backend_apps.document',
     'backend_apps.accounts',
+    'backend_apps.prescription',
 ]
 
 MIDDLEWARE = [

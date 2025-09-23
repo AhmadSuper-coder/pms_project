@@ -6,6 +6,7 @@ from backend_apps.accounts.models import PMSUser
 
 class Patient(models.Model):
     doctor = models.ForeignKey(PMSUser, on_delete=models.CASCADE, related_name="patients")
+    mobile_number = models.CharField(max_length=15, unique=True)
     full_name = models.CharField(max_length=255)
     age = models.PositiveIntegerField(null=True, blank=True)
     gender = models.CharField(max_length=20, null=True, blank=True)
