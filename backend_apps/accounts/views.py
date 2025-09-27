@@ -26,11 +26,15 @@ class OAuthLoginView(APIView):
         
         email = serializer.validated_data['email']
         name = serializer.validated_data.get('name', '')
+        sub = serializer.validated_data.get('sub', '')
+        profile_picture = serializer.validated_data.get('profile_picture', '')
 
         with transaction.atomic():
             user, created = PMSUser.objects.get_or_create(
                 email=email,
                 full_name=name,
+                sub_id=sub,
+                profile_picture=profile_picture
             )
 
         refresh = RefreshToken.for_user(user)

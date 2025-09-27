@@ -10,6 +10,7 @@ class OAuthLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     name = serializers.CharField(max_length=255, required=True, allow_blank=True)
     sub  = serializers.CharField(max_length=255, required=True, allow_blank=True)
+    profile_picture = serializers.URLField(max_length=500, required=False, allow_blank=True)
 
     def validate_email(self, value):
         """Normalize email to lowercase."""
@@ -17,6 +18,14 @@ class OAuthLoginSerializer(serializers.Serializer):
 
     def validate_name(self, value):
         """Clean and validate name field."""
+        return value.strip() if value else ""
+    
+    def validate_sub(self, value):
+        """Clean and validate sub field."""
+        return value.strip() if value else ""
+    
+    def validate_profile_picture(self, value):
+        """Clean and validate profile picture URL."""
         return value.strip() if value else ""
 
 
