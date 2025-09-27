@@ -38,8 +38,8 @@ class OAuthLoginView(APIView):
         user_serializer = UserSerializer(user)
         
         response_data = {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
             "created": created,
             "user": user_serializer.data,
         }

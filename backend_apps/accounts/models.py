@@ -23,6 +23,8 @@ class PMSUser(AbstractUser):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
     sub_id = models.CharField(max_length=255, blank=True, null=True)
+    profile_picture = models.URLField(max_length=500, blank=True, null=True)
+
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
