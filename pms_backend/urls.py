@@ -38,8 +38,10 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     
-    # API Endpoints
+    # patient related endpoints
     path('api/patient/', include('backend_apps.patient.urls')),
+
+    # API Endpoints
     path('api/otp/', include('backend_apps.otp.urls')),
     path('api/document/', include('backend_apps.document.urls')),
     path('api/accounts/', include('backend_apps.accounts.urls')),

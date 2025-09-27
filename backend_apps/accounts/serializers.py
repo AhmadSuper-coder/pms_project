@@ -34,7 +34,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PMSUser
-        fields = ['email', 'full_name', 'sub_id']
+        fields = ['email', 'full_name', 'sub_id', 'profile_picture']
 
 
 
