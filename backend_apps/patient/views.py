@@ -12,6 +12,15 @@ from backend_apps.bills.serializers import BillSerializer
 # from pms_backend.utils import get_user_id_from_jwt
 
 class PatientViewSet(viewsets.ModelViewSet):
+
+    """
+        GET /api/patient/ # List all patients
+        POST /api/patient/ # Create patient (doctor auto-set)
+        GET /api/patient/{id}/ # Get specific patient
+        PUT /api/patient/{id}/ # Update patient
+        PUT /api/patient/{id}/ # Update patient
+        DELETE /api/patient/{id}/ # Delete patient
+    """
     queryset = Patient.objects.all()
     serializer_class = PatientSerializer
     permission_classes = [IsAuthenticated]
@@ -25,6 +34,45 @@ class PatientViewSet(viewsets.ModelViewSet):
         # Auto-set doctor from authenticated user when creating a patient
         serializer.save(doctor=self.request.user)
 
+
+    @action(detail=True, methods=['get'])
+    def detailed_by_pk(self, request, pk=None):
+        """
+        Alternative method using URL parameter instead of query parameter
+        Usage: GET /api/patient/1/detailed_by_pk/
+        """
+        try:
+            patient = self.get_object()  # This automatically filters by current doctor
+
+            # Get patient basic info
+            patient_serializer = PatientSerializer(patient)
+
+            # Get related data
+            prescriptions = patient.prescriptions.all().order_by('-created_at')
+            prescriptions_serializer = PrescriptionSerializer(prescriptions, many=True)
+
+            bills = patient.bills.all().order_by('-created_at')
+            bills_serializer = BillSerializer(bills, many=True)
+
+            return Response({
+                'success': True,
+                'patient_info': patient_serializer.data,
+                'prescriptions': {
+                    'count': prescriptions.count(),
+                    'data': prescriptions_serializer.data
+                },
+                'bills': {
+                    'count': bills.count(),
+                    'data': bills_serializer.data
+                },
+                'last_updated': patient.updated_at
+            })
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     # Custom action: get appointments
     # @action(detail=True, methods=["get"])
