@@ -41,6 +41,12 @@ urlpatterns = [
     # patient related endpoints
     path('api/patients/', include('backend_apps.patient.urls')),
 
+    # bill related
+    path('api/bills/', include('backend_apps.bills.urls')),
+
+    # prescription related
+    path('api/prescription/', include('backend_apps.prescription.urls')),
+
     # API Endpoints
     path('api/otp/', include('backend_apps.otp.urls')),
     path('api/document/', include('backend_apps.document.urls')),

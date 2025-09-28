@@ -33,9 +33,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        else:
-            # Default to active patients only
-            queryset = queryset.filter(status=Patient.StatusChoices.ACTIVE)
+
 
         return queryset
 
@@ -69,18 +67,14 @@ class PatientViewSet(viewsets.ModelViewSet):
         # Auto-set doctor from authenticated user when creating a patient
         serializer.save(doctor=self.request.user)
 
-
     @action(detail=True, methods=['get'])
     def detailed_by_pk(self, request, pk=None):
         """
-        Alternative method using URL parameter instead of query parameter
+        Get detailed patient information organized by sections
         Usage: GET /api/patient/1/detailed_by_pk/
         """
         try:
             patient = self.get_object()  # This automatically filters by current doctor
-
-            # Get patient basic info
-            patient_serializer = PatientSerializer(patient)
 
             # Get related data
             prescriptions = patient.prescriptions.all().order_by('-created_at')
@@ -89,18 +83,72 @@ class PatientViewSet(viewsets.ModelViewSet):
             bills = patient.bills.all().order_by('-created_at')
             bills_serializer = BillSerializer(bills, many=True)
 
+            # Get documents if available
+            documents = []
+            documents_count = 0
+            try:
+                from backend_apps.document.models import Document
+                from backend_apps.document.serializers import DocumentSerializer
+
+                patient_documents = Document.objects.filter(patient=patient).order_by('-created_at')
+                documents_serializer = DocumentSerializer(patient_documents, many=True)
+                documents = documents_serializer.data
+                documents_count = patient_documents.count()
+            except ImportError:
+                # Document app not available
+                pass
+
             return Response({
                 'success': True,
-                'patient_info': patient_serializer.data,
+                'patient_id': patient.id,
+                'basic_information': {
+                    'full_name': patient.full_name,
+                    'age': patient.age,
+                    'gender': patient.get_gender_display() if patient.gender else None,
+                    'gender_value': patient.gender,
+                    'status': patient.get_status_display(),
+                    'status_value': patient.status,
+                    'created_on': patient.created_at,
+                    'last_updated': patient.updated_at
+                },
+                'contact_information': {
+                    'mobile_number': patient.mobile_number,
+                    'email': patient.email,
+                    'address': patient.address
+                },
+                'personal_details': {
+                    'emergency_contact': patient.emergency_contact,
+                    'created_on': patient.created_at
+                },
+                'medical_history': {
+                    'medical_history': patient.medical_history,
+                    'known_allergies': patient.known_allergies,
+                    'lifestyle_information': patient.lifestyle_information
+                },
+                'documents': {
+                    'count': documents_count,
+                    'list': documents
+                },
                 'prescriptions': {
                     'count': prescriptions.count(),
-                    'data': prescriptions_serializer.data
+                    'total_visits': prescriptions.count(),
+                    'last_visit': prescriptions.first().created_at if prescriptions.exists() else None,
+                    'next_follow_up': prescriptions.filter(
+                        follow_up_date__isnull=False
+                    ).first().follow_up_date if prescriptions.filter(
+                        follow_up_date__isnull=False
+                    ).exists() else None,
+                    'list': prescriptions_serializer.data
                 },
-                'bills': {
+                'billing': {
                     'count': bills.count(),
-                    'data': bills_serializer.data
-                },
-                'last_updated': patient.updated_at
+                    'total_amount': sum(float(bill.amount) for bill in bills if bill.amount),
+                    'paid_bills': bills.filter(status='paid').count(),
+                    'pending_bills': bills.filter(status='pending').count(),
+                    'overdue_bills': bills.filter(status='overdue').count(),
+                    'last_bill_date': bills.first().date if bills.exists() else None,
+                    'list': bills_serializer.data
+                }
             })
 
         except Exception as e:

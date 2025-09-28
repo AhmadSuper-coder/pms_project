@@ -14,7 +14,7 @@ class PatientAdmin(admin.ModelAdmin):
             "fields": ("full_name", "mobile_number", "email", "doctor")
         }),
         ("Personal Details", {
-            "fields": ("age", "gender", "date_of_birth", "address", "emergency_contact")
+            "fields": ("age", "gender", "address", "emergency_contact")
         }),
         ("Medical Information", {
             "fields": ("known_allergies", "medical_history", "lifestyle_information")

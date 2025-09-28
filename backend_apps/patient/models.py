@@ -36,7 +36,6 @@ class Patient(models.Model):
     email = models.EmailField(null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     emergency_contact = models.CharField(max_length=255, null=True, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
     known_allergies = models.TextField(null=True, blank=True)
     medical_history = models.TextField(null=True, blank=True)
     lifestyle_information = models.TextField(null=True, blank=True)
