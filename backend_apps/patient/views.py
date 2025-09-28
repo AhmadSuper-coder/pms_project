@@ -26,9 +26,44 @@ class PatientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Only patients of logged-in doctor
-        return Patient.objects.filter(doctor=self.request.user)
+        # Only active patients of logged-in doctor by default
+        queryset = Patient.objects.filter(doctor=self.request.user)
 
+        # Allow filtering by status via query parameter
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        else:
+            # Default to active patients only
+            queryset = queryset.filter(status=Patient.StatusChoices.ACTIVE)
+
+        return queryset
+
+    @action(detail=True, methods=['patch'])
+    def activate(self, request, pk=None):
+        """Activate a patient"""
+        patient = self.get_object()
+        patient.activate()
+        serializer = self.get_serializer(patient)
+
+        return Response({
+            'success': True,
+            'message': f'Patient {patient.full_name} has been activated',
+            'patient': serializer.data
+        })
+
+    @action(detail=True, methods=['patch'])
+    def deactivate(self, request, pk=None):
+        """Deactivate a patient"""
+        patient = self.get_object()
+        patient.deactivate()
+        serializer = self.get_serializer(patient)
+
+        return Response({
+            'success': True,
+            'message': f'Patient {patient.full_name} has been deactivated',
+            'patient': serializer.data
+        })
 
     def perform_create(self, serializer):
         # Auto-set doctor from authenticated user when creating a patient

@@ -28,11 +28,16 @@ SECRET_KEY = 'django-insecure-k^l$6s!6@$d@r)984l69dbz1w+p4oj7ta^o^)re6w_m!knw%$k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["backend.jsonformatters.online","127.0.0.1","localhost"]
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://backend.jsonformatters.online",
-]
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    # Production CORS settings
+    CORS_ALLOWED_ORIGINS = [
+        "https://backend.jsonformatters.online",
+    ]
+    ALLOWED_HOSTS = ["backend.jsonformatters.online", "127.0.0.1", "localhost", 'http://localhost:5000']
 
 # Application definition
 INSTALLED_APPS = project_settings.server.server_configuration.get_installed_app()
