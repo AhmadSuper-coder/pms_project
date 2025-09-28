@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
+import project_settings.server.server_configuration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,25 +35,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Application definition
+INSTALLED_APPS = project_settings.server.server_configuration.get_installed_app()
 
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'django_filters',
-    'drf_spectacular',
-    'corsheaders',
-    'backend_apps.patient',
-    'backend_apps.otp',
-    'backend_apps.document',
-    'backend_apps.accounts',
-    'backend_apps.prescription',
-]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

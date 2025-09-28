@@ -14,6 +14,7 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = "__all__"
+        read_only_fields = ['id', 'doctor', 'created_at', 'updated_at']  # Make doctor read-only
 
 # class AppointmentSerializer(serializers.ModelSerializer):
 #     class Meta:
@@ -22,8 +23,4 @@ class PatientSerializer(serializers.ModelSerializer):
 
 
 
-class BillSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Bill
-        fields = "__all__"
 

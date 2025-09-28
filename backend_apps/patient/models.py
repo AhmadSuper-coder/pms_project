@@ -17,7 +17,7 @@ class Patient(models.Model):
     known_allergies = models.TextField(null=True, blank=True)
     medical_history = models.TextField(null=True, blank=True)
     lifestyle_information = models.TextField(null=True, blank=True)
-    last_visit = models.DateField(null=True, blank=True)
+    # last_visit = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

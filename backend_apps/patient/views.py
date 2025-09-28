@@ -8,7 +8,8 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Patient
 from .serializers import PatientSerializer
 from backend_apps.prescription.serializers import PrescriptionSerializer
-
+from backend_apps.bills.serializers import BillSerializer
+# from pms_backend.utils import get_user_id_from_jwt
 
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = Patient.objects.all()
@@ -18,6 +19,12 @@ class PatientViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Only patients of logged-in doctor
         return Patient.objects.filter(doctor=self.request.user)
+
+
+    def perform_create(self, serializer):
+        # Auto-set doctor from authenticated user when creating a patient
+        serializer.save(doctor=self.request.user)
+
 
     # Custom action: get appointments
     # @action(detail=True, methods=["get"])
