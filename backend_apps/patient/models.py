@@ -18,7 +18,7 @@ class Patient(models.Model):
         DECEASED = "deceased", "Deceased"
 
     doctor = models.ForeignKey(PMSUser, on_delete=models.CASCADE, related_name="patients")
-    mobile_number = models.CharField(max_length=15, unique=True)
+    mobile_number = models.CharField(max_length=15)
     full_name = models.CharField(max_length=255)
     age = models.PositiveIntegerField(null=True, blank=True)
     gender = models.CharField(
@@ -48,6 +48,12 @@ class Patient(models.Model):
             models.Index(fields=["doctor", "status"]),
             models.Index(fields=["mobile_number"]),
             models.Index(fields=["status"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["doctor", "mobile_number"],
+                name="unique_doctor_patient_mobile",
+            )
         ]
 
     def __str__(self) -> str:

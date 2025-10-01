@@ -26,7 +26,16 @@ class GenerateOtpView(APIView):
         except OtpDeliveryError as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response({"detail": "OTP sent", "expires_at": expires_at}, status=status.HTTP_200_OK)
+        return Response({
+            "success": True,
+            "message": "OTP sent successfully",
+            "expires_at": expires_at,
+            "data": {
+                "identifier": identifier,
+                "channel": channel
+            }
+        },
+        status=status.HTTP_200_OK)
 
 
 class VerifyOtpView(APIView):

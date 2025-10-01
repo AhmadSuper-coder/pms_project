@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, filters
 from rest_framework.decorators import action
@@ -5,6 +6,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
+
+from .exceptions import PatientException,patient_exception
 from .models import Patient
 from .serializers import PatientSerializer
 from backend_apps.prescription.serializers import PrescriptionSerializer
@@ -63,9 +66,24 @@ class PatientViewSet(viewsets.ModelViewSet):
             'patient': serializer.data
         })
 
+    def create(self, request, *args, **kwargs):
+        doctor = request.user
+        mobile_number = request.data.get("mobile_number")
+        try:
+            # Check if patient already exists for this doctor
+            if Patient.objects.filter(doctor=doctor, mobile_number=mobile_number).exists():
+                raise PatientException(patient_exception.USER_ALREADY_EXIST)
+
+            # If not exist, use default DRF create logic
+            return super().create(request, *args, **kwargs)
+        except PatientException as e:
+            return patient_exception.response(e.args[0], __name__)
+
     def perform_create(self, serializer):
-        # Auto-set doctor from authenticated user when creating a patient
+        # Auto-set doctor for creation
         serializer.save(doctor=self.request.user)
+
+
 
     @action(detail=True, methods=['get'])
     def detailed_by_pk(self, request, pk=None):
