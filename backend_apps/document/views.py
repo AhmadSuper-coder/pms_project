@@ -17,7 +17,7 @@ from .exceptions import DocumentException, document_exception
 from .models import Document
 from backend_apps.patient.models import Patient
 from .serializers import DocumentSerializer
-from utils.file_upload_related import generate_presigned_upload_url
+from .gcs import generate_presigned_upload_url, generate_presigned_download_url
 
 def _gcs_client():
     try:
@@ -38,20 +38,11 @@ class GcsSignUploadUrlView(APIView):
             size_bytes = request.data.get("size_bytes")
             patient_id = request.data.get("patient_id")
             document_type = request.data.get("document_type")
+            description = request.data.get("description")
             if not filename or not content_type:
                 raise DocumentException(document_exception.FILE_INFO_REQUIRED)
             if not patient_id:
                 raise DocumentException(document_exception.PATIENT_ID_REQUIRED)
-
-            # gcs_cfg = get_gcs_settings()
-            # bucket_name = gcs_cfg['bucket']
-            # if not bucket_name:
-            #     raise DocumentException(document_exception.BUCKET_NOT_CONFIGURED)
-            #
-            # unique_key = build_upload_key(filename, gcs_cfg['upload_prefix'])
-            # expires_in = int(gcs_cfg['put_expire_seconds'])
-            # method = "PUT"
-            # signed_url = generate_signed_put_url(bucket_name, unique_key, content_type, expires_in)
 
             # "document.pdf", "application/pdf"
             signed_url, unique_file_key, expires_in, method= generate_presigned_upload_url(filename, content_type)
@@ -70,6 +61,7 @@ class GcsSignUploadUrlView(APIView):
                 size_bytes=size_bytes or None,
                 document_type=document_type or None,
                 is_uploaded=False,
+                description=description or None,
             )
 
             return Response(
@@ -107,15 +99,19 @@ class ConfirmUploadView(APIView):
         doc.is_uploaded = True
         doc.save(update_fields=["is_uploaded", "updated_at"])
 
-        # Return a GET URL for later access (signed GET)
-        gcs_cfg = get_gcs_settings()
-        bucket_name = gcs_cfg['bucket']
-        get_expires_in = gcs_cfg['get_expire_seconds']
-        download_url = generate_signed_get_url(bucket_name, doc.gcs_key, get_expires_in)
+        # Return a GET URL for later access (signed GET) # Return a GET URL for later access (signed GET)
+        try:
+            download_url, download_expires_in = generate_presigned_download_url(doc.gcs_key)
+
+        except DocumentException as e:
+            return Response(
+                {"detail": f"Failed to generate download URL: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         return Response(
             {
-                "detail": "Upload confirmed",
+                "status": True,
                 "document": {
                     "id": doc.id,
                     "filename": doc.filename,
@@ -123,7 +119,7 @@ class ConfirmUploadView(APIView):
                     "key": doc.gcs_key,
                 },
                 "download_url": download_url,
-                "download_expires_in": get_expires_in,
+                "download_expires_in": download_expires_in,
             }
         )
 

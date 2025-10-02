@@ -49,6 +49,13 @@ class Document(models.Model):
         default=False,
         help_text="Indicates whether the document has been successfully uploaded to storage."
     )
+
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Description of the document."
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text="The date and time when the document record was created."
@@ -58,9 +65,6 @@ class Document(models.Model):
         help_text="The date and time when the document record was last updated."
     )
 
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(args, kwargs)
-        self.id = None
 
     def __str__(self):
         return f"{self.filename} ({self.patient.full_name})"
