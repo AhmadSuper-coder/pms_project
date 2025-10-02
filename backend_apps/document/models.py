@@ -1,6 +1,10 @@
+from typing import Any
+
 from django.db import models
 from backend_apps.patient.models import Patient
 from backend_apps.accounts.models import PMSUser
+from non_django.error_handling.exceptions import GlobalException
+
 
 
 
@@ -54,6 +58,10 @@ class Document(models.Model):
         help_text="The date and time when the document record was last updated."
     )
 
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(args, kwargs)
+        self.id = None
+
     def __str__(self):
         return f"{self.filename} ({self.patient.full_name})"
 
@@ -63,5 +71,4 @@ class Document(models.Model):
 
     def __str__(self) -> str:
         return f"{self.filename} ({self.gcs_key})"
-
 

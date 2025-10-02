@@ -15,8 +15,8 @@ urlpatterns = [
     path("", include(router.urls)),
     path("sign-upload/", GcsSignUploadUrlView.as_view(), name="doc-sign-upload"),
     path("confirm/", ConfirmUploadView.as_view(), name="doc-confirm"),
-    path("patient/<int:patient_id>/documents/", PatientDocumentsView.as_view(), name="patient-documents"),
-    path("document/<int:document_id>/", DocumentDetailView.as_view(), name="document-detail"),
+    path("view/<int:patient_id>/", PatientDocumentsView.as_view(), name="patient-documents"),
+    path("<int:document_id>/", DocumentDetailView.as_view(), name="document-detail"),
 ]
 
 

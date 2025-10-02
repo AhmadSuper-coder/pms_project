@@ -13,11 +13,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
 
+from .exceptions import DocumentException, document_exception
 from .models import Document
 from backend_apps.patient.models import Patient
-from .gcs import get_gcs_settings, build_upload_key, generate_signed_put_url, generate_signed_get_url
 from .serializers import DocumentSerializer
-
+from utils.file_upload_related import generate_presigned_upload_url
 
 def _gcs_client():
     try:
@@ -31,52 +31,63 @@ class GcsSignUploadUrlView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        filename = request.data.get("filename")
-        content_type = request.data.get("content_type")
-        size_bytes = request.data.get("size_bytes")
-        patient_id = request.data.get("patient_id")
-        document_type = request.data.get("document_type")
-        if not filename or not content_type:
-            return Response({"detail": "filename and content_type required"}, status=status.HTTP_400_BAD_REQUEST)
-        if not patient_id:
-            return Response({"detail": "patient_id required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        gcs_cfg = get_gcs_settings()
-        bucket_name = gcs_cfg['bucket']
-        if not bucket_name:
-            return Response({"detail": "GCS bucket not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        unique_key = build_upload_key(filename, gcs_cfg['upload_prefix'])
-        expires_in = gcs_cfg['put_expire_seconds']
-        method = "PUT"
-        signed_url = generate_signed_put_url(bucket_name, unique_key, content_type, expires_in)
 
         try:
-            patient = Patient.objects.get(id=patient_id)
-        except Patient.DoesNotExist:
-            return Response({"detail": "Patient not found"}, status=status.HTTP_404_NOT_FOUND)
+            filename = request.data.get("filename")
+            content_type = request.data.get("content_type")
+            size_bytes = request.data.get("size_bytes")
+            patient_id = request.data.get("patient_id")
+            document_type = request.data.get("document_type")
+            if not filename or not content_type:
+                raise DocumentException(document_exception.FILE_INFO_REQUIRED)
+            if not patient_id:
+                raise DocumentException(document_exception.PATIENT_ID_REQUIRED)
 
-        doc = Document.objects.create(
-            owner=request.user if request.user.is_authenticated else None,
-            patient=patient,
-            filename=filename,
-            content_type=content_type,
-            gcs_key=unique_key,
-            size_bytes=size_bytes or None,
-            document_type=document_type or None,
-            is_uploaded=False,
-        )
+            # gcs_cfg = get_gcs_settings()
+            # bucket_name = gcs_cfg['bucket']
+            # if not bucket_name:
+            #     raise DocumentException(document_exception.BUCKET_NOT_CONFIGURED)
+            #
+            # unique_key = build_upload_key(filename, gcs_cfg['upload_prefix'])
+            # expires_in = int(gcs_cfg['put_expire_seconds'])
+            # method = "PUT"
+            # signed_url = generate_signed_put_url(bucket_name, unique_key, content_type, expires_in)
 
-        return Response(
-            {
-                "upload_url": signed_url,
-                "method": method,
-                "headers": {"Content-Type": content_type},
-                "key": unique_key,
-                "document_id": doc.id,
-                "expires_in": expires_in,
-            }
-        )
+            # "document.pdf", "application/pdf"
+            signed_url, unique_file_key, expires_in, method= generate_presigned_upload_url(filename, content_type)
+
+            try:
+                patient = Patient.objects.get(id=patient_id)
+            except Patient.DoesNotExist:
+                raise DocumentException(document_exception.PATIENT_NOT_FOUND)
+
+            doc = Document.objects.create(
+                owner=request.user if request.user.is_authenticated else None,
+                patient=patient,
+                filename=filename,
+                content_type=content_type,
+                gcs_key=unique_file_key,
+                size_bytes=size_bytes or None,
+                document_type=document_type or None,
+                is_uploaded=False,
+            )
+
+            return Response(
+                {
+                    "upload_url": signed_url,
+                    "method": method,
+                    "headers": {"Content-Type": content_type},
+                    "key": unique_file_key,
+                    "document_id": doc.id,
+                    "expires_in": expires_in,
+                }
+            )
+
+        except DocumentException as e:
+            document_exception.response(e.args[0], __name__)
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ConfirmUploadView(APIView):
@@ -191,7 +202,7 @@ class DocumentViewSet(ModelViewSet):
     filterset_fields = ['patient', 'document_type', 'is_uploaded']
 
     def get_queryset(self):
-        """Return documents filtered by the authenticated doctor."""
+        """Return documents filtered by the authenticated DocumentViewSetDocumentViewSetdoctor."""
         return Document.objects.filter(patient__doctor=self.request.user)
 
     def perform_create(self, serializer):
